@@ -2,16 +2,13 @@ name: CI Pipeline
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize, review_requested, submitted]
     branches: [master]
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      - name: Initialize repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v3
@@ -22,19 +19,35 @@ jobs:
         run: dotnet restore ToDoApp.sln
 
       - name: Build solution
-        run: dotnet build ToDoApp.sln --configuration Release --no-restore
+        run: dotnet build ToDoApp.sln --configuration Release
 
       - name: Run tests
-        run: dotnet test ToDoApp.sln --no-build --logger "trx;LogFileName=test_results.trx"
+        run: dotnet test ToDoApp.sln --logger "trx;LogFileName=test_results.trx"
 
   analysis:
     runs-on: windows-latest
     needs: build
-
     steps:
-      - name: Initialize repository
-        uses: actions/checkout@v3
-        
+      - uses: actions/checkout@v3
+
+      - name: Count lines of code with CLOC
+        run: |
+          choco install cloc -y
+          cloc ToDoApp > cloc-report.txt
+          type cloc-report.txt
+
+      - name: Run SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ secrets.SONAR_ORG }}
+        run: |
+          Write-Host "SONAR_ORG length: $($env:SONAR_ORG.Length)"
+          Write-Host "SONAR_TOKEN length: $($env:SONAR_TOKEN.Length)"
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:"$env:SONAR_ORG" /d:sonar.login="$env:SONAR_TOKEN"
+          dotnet build ToDoApp.sln
+          dotnet sonarscanner end /d:sonar.login="$env:SONAR_TOKEN"
+
       - name: Code Review Check
         uses: actions/github-script@v6
         with:
@@ -42,7 +55,7 @@ jobs:
           script: |
             const pr = context.payload.pull_request;
             if (!pr) {
-              core.setFailed("Öå íå Pull Request");
+              core.setFailed("Це не Pull Request");
               return;
             }
 
@@ -55,18 +68,32 @@ jobs:
               pull_number: prNumber
             });
 
-            console.log("Âñ³ ðåâ’þ:");
+            console.log("Всі рев’ю:");
             reviews.forEach(r => {
               console.log(`User: ${r.user.login}, State: ${r.state}`);
             });
 
             if (pr.user.login === context.actor) {
-              console.log("Àâòîð PR - öå âèêîíàâåöü");
+              console.log("Автор PR - це виконавець");
             } else {
               const approved = reviews.some(review => review.state === 'APPROVED');
               if (!approved) {
-                core.setFailed("Êîä-ðåâ’þ íå ñõâàëåíî");
+                core.setFailed("Код-рев’ю не схвалено");
               } else {
-                console.log("ª ñõâàëåíå ðåâ’þ");
+                console.log("Є схвалене рев’ю");
               }
             }
+      - name: Setup reviewdog
+        uses: reviewdog/action-setup@v1.4.0
+        with:
+          reviewdog_version: latest
+
+      - name: Run StyleCop with Reviewdog
+        run: |
+            $env:REVIEWDOG_GITHUB_API_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
+            dotnet build ToDoApp.sln /p:RunAnalyzersDuringBuild=true | reviewdog -f=msbuild -name="StyleCop" -reporter=github-pr-review -level=error
+
+      - name: Run dotnet format with Reviewdog
+        run: |
+            $env:REVIEWDOG_GITHUB_API_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
+            dotnet format ToDoApp.sln --verify-no-changes | reviewdog -f=msbuild -name="dotnet-format" -reporter=github-pr-review -level=info
