@@ -1,0 +1,72 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, review_requested, submitted]
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Initialize repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore ToDoApp.sln
+
+      - name: Build solution
+        run: dotnet build ToDoApp.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test ToDoApp.sln --no-build --logger "trx;LogFileName=test_results.trx"
+
+  analysis:
+    runs-on: windows-latest
+    needs: build
+
+    steps:
+      - name: Initialize repository
+        uses: actions/checkout@v3\
+
+      - name: Code Review Check
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed("Öå íå Pull Request");
+              return;
+            }
+
+            const prNumber = pr.number;
+            const prAuthor = pr.user.login;
+
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            console.log("Âñ³ ðåâ’þ:");
+            reviews.forEach(r => {
+              console.log(`User: ${r.user.login}, State: ${r.state}`);
+            });
+
+            if (pr.user.login === context.actor) {
+              console.log("Àâòîð PR - öå âèêîíàâåöü");
+            } else {
+              const approved = reviews.some(review => review.state === 'APPROVED');
+              if (!approved) {
+                core.setFailed("Êîä-ðåâ’þ íå ñõâàëåíî");
+              } else {
+                console.log("ª ñõâàëåíå ðåâ’þ");
+              }
+            }
