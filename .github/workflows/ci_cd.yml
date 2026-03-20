@@ -33,8 +33,8 @@ jobs:
 
     steps:
       - name: Initialize repository
-        uses: actions/checkout@v3\
-
+        uses: actions/checkout@v3
+        
       - name: Code Review Check
         uses: actions/github-script@v6
         with:
