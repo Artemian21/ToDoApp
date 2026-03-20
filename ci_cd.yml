@@ -19,13 +19,13 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore CalculatorSolution.sln
+        run: dotnet restore ToDoApp.sln
 
       - name: Build solution
-        run: dotnet build CalculatorSolution.sln --configuration Release --no-restore
+        run: dotnet build ToDoApp.sln --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test CalculatorSolution.sln --no-build --logger "trx;LogFileName=test_results.trx"
+        run: dotnet test ToDoApp.sln --no-build --logger "trx;LogFileName=test_results.trx"
 
   analysis:
     runs-on: windows-latest
