@@ -43,13 +43,13 @@ jobs:
 
       - name: Run SonarCloud analysis
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_ORG: ${{ secrets.SONAR_ORG }}
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            SONAR_ORG: ${{ secrets.SONAR_ORG }}
         run: |
-          dotnet tool install --global dotnet-sonarscanner
-          dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:$env:SONAR_ORG /d:sonar.login=$env:SONAR_TOKEN
-          dotnet build ToDoApp.sln
-          dotnet sonarscanner end /d:sonar.login="$env:SONAR_TOKEN"
+            dotnet tool install --global dotnet-sonarscanner
+            dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:$env:SONAR_ORG /d:sonar.login=$env:SONAR_TOKEN
+            dotnet build ToDoApp.sln
+            dotnet sonarscanner end /d:sonar.login=$env:SONAR_TOKEN
 
       - name: Code Review Check
         uses: actions/github-script@v6
