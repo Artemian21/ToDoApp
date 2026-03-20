@@ -41,8 +41,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_ORG: ${{ secrets.SONAR_ORG }}
         run: |
-          Write-Host "SONAR_ORG length: $($env:SONAR_ORG.Length)"
-          Write-Host "SONAR_TOKEN length: $($env:SONAR_TOKEN.Length)"
           dotnet tool install --global dotnet-sonarscanner
           dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:"$env:SONAR_ORG" /d:sonar.login="$env:SONAR_TOKEN"
           dotnet build ToDoApp.sln
