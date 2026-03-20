@@ -16,6 +16,7 @@
                 Console.Write("Вибір: ");
                 string? choice = Console.ReadLine();
 
+
                 switch (choice)
                 {
                     case "1":
