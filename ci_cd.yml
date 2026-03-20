@@ -1,0 +1,36 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, review_requested, submitted]
+    branches: [develop]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore CalculatorSolution.sln
+
+      - name: Build solution
+        run: dotnet build CalculatorSolution.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test CalculatorSolution.sln --no-build --logger "trx;LogFileName=test_results.trx"
+
+  analysis:
+    runs-on: windows-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
