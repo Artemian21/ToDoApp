@@ -2,16 +2,13 @@ name: CI Pipeline
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize, review_requested, submitted]
     branches: [master]
 
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      - name: Initialize repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v3
@@ -22,7 +19,7 @@ jobs:
         run: dotnet restore ToDoApp.sln
 
       - name: Build solution
-        run: dotnet build ToDoApp.sln --configuration Release --no-restore
+        run: dotnet build ToDoApp.sln --configuration Release
 
       - name: Run tests
         run: dotnet test ToDoApp.sln --logger "trx;LogFileName=test_results.trx"
@@ -30,15 +27,13 @@ jobs:
   analysis:
     runs-on: windows-latest
     needs: build
-
     steps:
-      - name: Initialize repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Count lines of code with CLOC
         run: |
           choco install cloc -y
-          cloc Calculator > cloc-report.txt
+          cloc ToDoApp > cloc-report.txt
           type cloc-report.txt
 
       - name: Run SonarCloud analysis
@@ -47,9 +42,9 @@ jobs:
           SONAR_ORG: ${{ secrets.SONAR_ORG }}
         run: |
           dotnet tool install --global dotnet-sonarscanner
-          dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:$env:SONAR_ORG /d:sonar.login=$env:SONAR_TOKEN
+          dotnet sonarscanner begin /k:"Artemian21_ToDoApp" /o:"$env:SONAR_ORG" /d:sonar.login="$env:SONAR_TOKEN"
           dotnet build ToDoApp.sln
-          dotnet sonarscanner end /d:sonar.login=$env:SONAR_TOKEN
+          dotnet sonarscanner end /d:sonar.login="$env:SONAR_TOKEN"
 
       - name: Code Review Check
         uses: actions/github-script@v6
